@@ -1,4 +1,5 @@
 import data_utils as du
+
 def parse_json_columns(movies):
     """Convert the JSON-string columns (genres, keywords, cast, crew) into
     clean lists of names, and strip spaces so multi-word tags stay intact.
