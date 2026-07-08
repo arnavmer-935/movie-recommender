@@ -1,1 +1,17 @@
+# Data & trained models (regenerated via train.py, too large/derivative to commit)
+data/
+models/
+
+.env
+
 __pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+.ipynb_checkpoints/
+
+.DS_Store
+.vscode/

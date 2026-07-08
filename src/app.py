@@ -1,36 +1,42 @@
-# Looks good as is, but needs to change as per methods in other files
-
 import pickle
 import streamlit as st
 import requests
 import pandas as pd
+from dotenv import load_dotenv
+import os
+
+from recommendation import recommend
+
+load_dotenv()
+API_KEY = os.getenv("API_KEY")
 
 def fetch_poster(movie_id):
-    url = "https://api.themoviedb.org/3/movie/{}?api_key=8265bd1679663a7ea12ac168da84d2e8&language=en-US".format(movie_id)
-    data = requests.get(url)
-    data = data.json()
-    poster_path = data['poster_path']
-    full_path = "https://image.tmdb.org/t/p/w500/" + poster_path
-    return full_path
+    """Fetch a movie's poster image URL from the TMDB API.
 
+    Args:
+        movie_id: int, the TMDB movie ID (from the movies dataframe).
 
-def recommend(movie):
-    index = movies[movies['title'] == movie].index[0]
-    distances = sorted(list(enumerate(similarity[index])), reverse=True, key=lambda x: x[1])
-    recommended_movie_names = []
-    recommended_movie_posters = []
-    for i in distances[1:6]:
-        #fetch the movie poster
-        movie_id = movies.iloc[i[0]].movie_id
-        recommended_movie_posters.append(fetch_poster(movie_id))
-        recommended_movie_names.append(movies.iloc[i[0]].title)
-
-    return recommended_movie_names, recommended_movie_posters
+    Returns:
+        str: a full poster image URL, or a placeholder image URL if the
+             request fails, times out, or the movie has no poster on TMDB.
+    """
+    placeholder = "https://placehold.co/500x750?text=No+Poster"
+    try:
+        url = "https://api.themoviedb.org/3/movie/{}?api_key={}".format(movie_id, API_KEY)
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        poster_path = data.get('poster_path')
+        if not poster_path:
+            return placeholder
+        return "https://image.tmdb.org/t/p/w500/" + poster_path
+    except requests.exceptions.RequestException:
+        return placeholder
 
 
 st.header('Movie Recommender System')
-movies = pickle.load(open("/Users/arnav/Desktop/Movie Recom/movies_info.pkl",'rb'))
-similarity = pickle.load(open('/Users/arnav/Desktop/Movie Recom/recommender.pkl','rb'))
+movies = pickle.load(open("models/movies_info.pkl",'rb'))
+similarity = pickle.load(open('models/recommender.pkl','rb'))
 
 movie_list = movies['title'].values
 selected_movie = st.selectbox(
@@ -39,25 +45,9 @@ selected_movie = st.selectbox(
 )
 
 if st.button('Show Recommendation'):
-    recommended_movie_names, recommended_movie_posters = recommend(selected_movie)
-    col1, col2, col3, col4, col5 = st.columns(5)
-    with col1:
-        st.text(recommended_movie_names[0])
-        st.image(recommended_movie_posters[0])
-    with col2:
-        st.text(recommended_movie_names[1])
-        st.image(recommended_movie_posters[1])
-
-    with col3:
-        st.text(recommended_movie_names[2])
-        st.image(recommended_movie_posters[2])
-    with col4:
-        st.text(recommended_movie_names[3])
-        st.image(recommended_movie_posters[3])
-    with col5:
-        st.text(recommended_movie_names[4])
-        st.image(recommended_movie_posters[4])
-
-
-
-
+    results = recommend(selected_movie, movies, similarity)
+    cols = st.columns(5)
+    for col, (_, row) in zip(cols, results.iterrows()):
+        with col:
+            st.text(row['title'])
+            st.image(fetch_poster(row['movie_id']))

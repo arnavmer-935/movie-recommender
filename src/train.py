@@ -7,6 +7,14 @@ from recommendation import train_model, save_model
 MODELS_DIR = "models"
 
 def main():
+    """Run the full training pipeline end-to-end: load raw CSVs, clean and
+    tag the data, train the similarity model, and persist both to disk as
+    pickles under MODELS_DIR.
+
+    Run this script directly (`python train.py`) any time the source CSVs
+    change or the cleaning/training logic is updated. app.py does not run
+    this itself — it only loads the pickles this produces.
+    """
     os.makedirs(MODELS_DIR, exist_ok=True)
 
     print("Loading data...")
